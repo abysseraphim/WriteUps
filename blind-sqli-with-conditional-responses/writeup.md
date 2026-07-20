@@ -37,18 +37,18 @@ cookie" AND "1"="1
 
 If one of the payloads works, the boolean oracle ("Welcome back") will appear in the response:
 
-![image](/images/1-detectingBooleanBasedBlind.png)
-![image2](/images/2-detectingBooleanBasedBlind.png)
+![image](images/1-detectingBooleanBasedBlind.png)
+![image2](images/2-detectingBooleanBasedBlind.png)
 
 Response matched:
 
-![image3](/images/3-detectingBooleanBasedBlind.png)
+![image3](images/3-detectingBooleanBasedBlind.png)
 
 **Second test — confirming the vulnerability:**
 
 Simply change `1` to any other number to make the condition evaluate to false:
 
-![image4](/images/4-confirmingVulnerability.png)
+![image4](images/4-confirmingVulnerability.png)
 
 If the response no longer contains "Welcome back" and differs from the original, the SQL injection vulnerability is confirmed.
 
@@ -68,11 +68,11 @@ In this case, I'm dealing with boolean-based blind injection — meaning everyth
 
 My initial assumption was MySQL (my brain's default), so I went straight for a payload to find the database name length:
 
-![image5](/images/5-tryingMySQLPayload.png)
+![image5](images/5-tryingMySQLPayload.png)
 
 "Welcome back" wasn't present in the response. My second guess was PostgreSQL — since the first character of `version()` output in PostgreSQL is `'P'`, I tried this payload:
 
-![image6](/images/6-tryingPostgressqlPayload.png)
+![image6](images/6-tryingPostgressqlPayload.png)
 
 It matched. Database confirmed: **PostgreSQL**.
 
@@ -80,8 +80,8 @@ It matched. Database confirmed: **PostgreSQL**.
 
 Out of habit, I went for the database name length next:
 
-![image7](/images/7-findingDBlength.png)
-![image8](/images/8-findingDBlength.png)
+![image7](images/7-findingDBlength.png)
+![image8](images/8-findingDBlength.png)
 
 I then remembered this step is only necessary in MySQL, not PostgreSQL — so I moved on.
 
@@ -89,8 +89,8 @@ I then remembered this step is only necessary in MySQL, not PostgreSQL — so I 
 
 The next step was finding the length of the first table name:
 
-![image9](/images/9-findingLengthOfFirstTable.png)
-![image10](/images/10-findingLengthOfFirstTablesName.png)
+![image9](images/9-findingLengthOfFirstTable.png)
+![image10](images/10-findingLengthOfFirstTablesName.png)
 
 Why do I need the table name length? Because once I know it, I can iterate through each character position and brute-force the value one character at a time.
 
@@ -102,10 +102,10 @@ Even though the lab description gives this away, I chose to enumerate it manuall
 
 > **Note:** Since I know the target field's length, I can try all possible characters at each position. I just need to change the start position in `SUBSTRING` and keep the length fixed at `1` to move character by character.
 
-![image11](/images/11-findingNameOfFirstTable.png)
-![image12](/images/12-findingNameOfFirstTable.png)
-![image13](/images/13-findingNameOfFirstTable.png)
-![image14](/images/14-findingNameOfFirstTable.png)
+![image11](images/11-findingNameOfFirstTable.png)
+![image12](images/12-findingNameOfFirstTable.png)
+![image13](images/13-findingNameOfFirstTable.png)
+![image14](images/14-findingNameOfFirstTable.png)
 
 And so on...
 
@@ -115,12 +115,12 @@ Table name confirmed: **`users`**
 
 Same strategy — starting with the length:
 
-![image15](/images/15-findingLengthOfFirstColumnName.png)
+![image15](images/15-findingLengthOfFirstColumnName.png)
 
 Length: **8**. Then, character by character:
 
-![image16](/images/16-findingNameOfFirstColumn.png)
-![image17](/images/17-findingNameOfFirstColumn.png)
+![image16](images/16-findingNameOfFirstColumn.png)
+![image17](images/17-findingNameOfFirstColumn.png)
 
 First column: **`username`**
 
@@ -130,12 +130,12 @@ To find the next column, I changed the `OFFSET` to `1` (similar to `LIMIT 1,1` i
 
 Length of the second column:
 
-![image18](/images/18-findingLengthOfSecondColumnName.png)
+![image18](images/18-findingLengthOfSecondColumnName.png)
 
 Length: **8**. Name of the second column:
 
-![image19](/images/19-findingNameOfSecondColumn.png)
-![image20](/images/20-findingNameOfSecondColumn.png)
+![image19](images/19-findingNameOfSecondColumn.png)
+![image20](images/20-findingNameOfSecondColumn.png)
 
 Second column: **`password`**
 
@@ -145,15 +145,15 @@ Second column: **`password`**
 
 Now that I knew the column names (`username` and `password`), I moved on to the actual data. First, I found the length of the first username:
 
-![image21](/images/21-findingLengthOfFirstMemberNameInUsername.png)
-![image22](/images/22-findingLengthOfFirstMemberNameInUsername.png)
+![image21](images/21-findingLengthOfFirstMemberNameInUsername.png)
+![image22](images/22-findingLengthOfFirstMemberNameInUsername.png)
 
 Length: **13** — that's `administrator`.
 
 Then, character by character:
 
-![image23](/images/23-findingNameOfFirstMemberInUsername.png)
-![image24](/images/24-findingNameOfFirstMemberInUsername.png)
+![image23](images/23-findingNameOfFirstMemberInUsername.png)
+![image24](images/24-findingNameOfFirstMemberInUsername.png)
 
 Username confirmed: **`administrator`**
 
@@ -161,8 +161,8 @@ Username confirmed: **`administrator`**
 
 As always, I started with the password length:
 
-![image25](/images/25-findingLengthOfAdministratorPassword.png)
-![image26](/images/26-findingLengthOfAdministratorPassword.png)
+![image25](images/25-findingLengthOfAdministratorPassword.png)
+![image26](images/26-findingLengthOfAdministratorPassword.png)
 
 Length: **20** — too long to brute-force manually in Repeater. Two options here:
 
@@ -170,14 +170,14 @@ Length: **20** — too long to brute-force manually in Repeater. Two options her
 
 Use Intruder to iterate over `SUBSTRING` positions and filter responses by length or content match:
 
-![image27](/images/27-tryingToDumpPasswordWithBurpIntruder.png)
-![image28](/images/28-tryingToDumpPasswordWithBurpIntruder.png)
-![image29](/images/29-tryingToDumpPasswordWithBurpIntruder.png)
+![image27](images/27-tryingToDumpPasswordWithBurpIntruder.png)
+![image28](images/28-tryingToDumpPasswordWithBurpIntruder.png)
+![image29](images/29-tryingToDumpPasswordWithBurpIntruder.png)
 
 **Option 2: Custom Script**
 
-![image30](/images/30-writingCustomScript.png)
-![image31](/images/31-passwordFound.png)
+![image30](images/30-writingCustomScript.png)
+![image31](images/31-passwordFound.png)
 
 ---
 
@@ -185,8 +185,8 @@ Use Intruder to iterate over `SUBSTRING` positions and filter responses by lengt
 
 Password extracted successfully. Login confirmed.
 
-![image32](/images/32-loginPage.png)
-![image33](/images/33-Solved.png)
+![image32](images/32-loginPage.png)
+![image33](images/33-Solved.png)
 
 ---
 
