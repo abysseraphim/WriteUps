@@ -1,6 +1,6 @@
 # Security Writeups
 
-A collection of my security writeups, lab solutions, and professional vulnerability reports.
+A collection of my security writeups, lab solutions, and vulnerability report samples.
 
 This repository documents my journey in offensive security through hands-on labs, primarily focused on web application security. Every lab is solved manually, documented in detail, and accompanied by a professional-style security report.
 
