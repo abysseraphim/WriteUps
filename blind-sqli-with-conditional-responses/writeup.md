@@ -11,7 +11,7 @@
 
 ## Summary
 
-Boolean-based blind SQL injection with conditional responses is a lab in the PortSwigger Web Security Academy. As the description states, the cookie is the injection entry point (source), and the application uses it to send a query that retrieves items. Since there are no direct query results, this is a blind test scenario — different modes will be explained throughout this writeup.
+Blind SQL injection with conditional responses is a lab in the PortSwigger Web Security Academy. As the description states, the cookie is the injection entry point (source), and the application uses it to send a query that retrieves items. Since there are no direct query results, this is a blind test scenario — different modes will be explained throughout this writeup.
 
 By manipulating the cookie value, the "Welcome back" message either appears or disappears depending on whether the injected condition evaluates to true. I used this message as a boolean oracle.
 
