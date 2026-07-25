@@ -1,6 +1,6 @@
 # Vulnerability Report: Reflected XSS via SVG Animate Bypass
 
-**Severity:** High  
+**Severity:** Medium  
 **CVSS Score:** 6.1 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N)  
 **Date:** 2026-07-22  
 **Target:** web-security-academy.net  

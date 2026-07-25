@@ -1,6 +1,6 @@
 # Vulnerability Report: Reflected XSS via JavaScript URL with Character Restrictions
 
-**Severity:** High  
+**Severity:** Medium  
 **CVSS Score:** 6.1 (CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N)  
 **Date:** 2026-07-23  
 **Target:** TARGET.web-security-academy.net  
