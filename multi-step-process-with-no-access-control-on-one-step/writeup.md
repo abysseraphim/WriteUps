@@ -11,7 +11,7 @@
 
 ## Summary
 
-Multi-Step Process with No Access Control on One Step is a lab in the PortSwigger Web Security Academy.  
+Multi-Step Process with No Access Control on One Step is a -gray box- lab in the PortSwigger Web Security Academy.  
 In this lab, there's an admin panel that lets administrators change the role of users through a multi-step process.  
 The task is to log in as `wiener` and exploit the flawed access controls to promote yourself to administrator.
 
