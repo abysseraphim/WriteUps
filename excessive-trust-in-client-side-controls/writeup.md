@@ -1,19 +1,21 @@
-# Lab: Multi-Step Process with No Access Control on One Step
+# Lab: Excessive Trust in Client-Side Controls
 
 | Field | Details |
 |-------|---------|
 | **Provider** | PortSwigger |
-| **Difficulty** | Practitioner |
-| **Category** | Broken Access Control |
+| **Difficulty** | Apprentice |
+| **Category** | Business Logic |
 | **Date** | 2026-08-01 |
 
 ---
 
 ## Summary
 
-Multi-Step Process with No Access Control on One Step is a -gray box- lab in the PortSwigger Web Security Academy.  
-In this lab, there's an admin panel that lets administrators change the role of users through a multi-step process.  
-The task is to log in as `wiener` and exploit the flawed access controls to promote yourself to administrator.
+Excessive Trust in Client-Side Controls is a lab in the PortSwigger Web Security Academy.  
+In this lab we have a shopping website where you can add items to cart and submit orders.  
+The task is buying a product that costs more than our current balance.
+
+In this writeup, I'm going to explain one of the most common — and most embarrassing — business logic vulnerabilities out there.
 
 ![image](images/1-labinfo.png)
 
@@ -21,101 +23,70 @@ The task is to log in as `wiener` and exploit the flawed access controls to prom
 
 ## Reconnaissance
 
-I opened the target — a normal shopping site.  
-The lab gives you admin credentials upfront: `administrator:admin`  
-So I logged in as admin first to understand what the role-change flow looks like.
+When I opened the web application, it looked like a standard shopping site — some items to buy, account management, and a cart.
 
-![image](images/2-blog.png)
+![image](images/2-shoppingApp.png)
 
-I logged in as administrator.
+The target is a Lightweight l33t Leather Jacket priced at $1337.00. My account balance was $100. So I can't just buy it normally.
 
-![image](images/3-loginAsAdmin.png)
+![image](images/3-productPrice.png)
 
-Inside the admin panel, there's a user management section where you can upgrade or downgrade users.  
-I clicked upgrade on a user and watched the requests.
+I added the jacket to my cart and intercepted the request.  
+The POST request body contained: `productId`, `redir`, `quantity` — and `price`.
 
-![image](images/4-adminPanel.png)
+![image](images/4-request.png)
 
-The server first asks for confirmation before applying the change.
+The price is being sent from the client side. The server is just... trusting it.
 
-![image](images/5-confirmation.png)
+When I tried to place the order without touching anything, the application said: "Not enough store credit for this purchase."
 
-The flow was two steps. Step 1 — select the user and action:
-
-```
-POST /admin-roles
-username=carlos&action=upgrade
-```
-
-![image](images/6-request.png)
-
-Step 2 — confirm:
-
-```
-POST /admin-roles
-action=upgrade&confirmed=true&username=carlos
-```
-
-![image](images/7-confirmed.png)
-
-That `confirmed=true` in the second request immediately stood out.  
-Multi-step flows like this exist to make sure the user actually meant to do something.  
-But the real question is: does the server check *who* is doing the confirming?
+![image](images/5-notEnoughMoney.png)
 
 ---
 
 ## Exploitation
 
-My theory was that the server checks authorization on step 1 but forgets to do it again on step 2 — assuming that if someone reached the confirmation step, they must have already been verified.
+I removed the item from the cart, turned on request interception and clicked Add to Cart again.
 
-To test this, I logged in as `wiener` and grabbed my session cookie.
+This is one of the most straightforward tests you can do — if the price is in the request body, just change it.
 
-![image](images/8-loginAsWiener.png)
+I changed `price` from `133700` to `1300` (that's $13.00) and forwarded the request.
 
-Then I took the step 2 request — the one with `confirmed=true` — and replaced the admin session cookie with wiener's.  
-I also changed `username` to `wiener` so I'd be upgrading myself.
+![image](images/7-changingThePrice.png)
 
-```
-POST /admin-roles
-Cookie: session=<wiener_session>
+The jacket was added to the cart at $13.00.
 
-action=upgrade&confirmed=true&username=wiener
-```
+![image](images/8-onlyThirteenDollars.png)
 
-![image](images/9-replaceTheCookie.png)
+I placed the order and it went through.
 
-The server returned 302 — no error, no rejection.  
-It just went through.
+![image](images/9-done.png)
 
 ---
 
 ## Result
 
-Wiener was now an administrator. Lab solved.
-
-![image](images/10-done.png)
+The order was accepted at the manipulated price. Lab solved.
 
 ---
 
 ## Impact & Remediation
 
-The impact here depends on what that admin panel can do — and in most real applications, that's a lot.  
-Any authenticated user who knows the structure of the confirmation request can skip step 1 entirely and go straight to step 2.  
-No admin credentials needed. No special access. Just a valid session and knowledge of the endpoint.
-
-In a real app this could mean: privilege escalation for any user, mass account takeovers, or full platform compromise — depending on what the admin panel exposes.
+The impact here is direct financial loss for the business.  
+Any user can buy any item for any price they want — including $0 or negative values — just by modifying the request before it reaches the server.  
+In a real application, this translates to stolen goods, revenue loss, and potential for large-scale abuse if the vulnerability is discovered by more than one person.
 
 To fix this:
-- Authorization must be enforced **on every step** of a multi-step process independently. The server can't assume that reaching step 2 means step 1 was properly authorized.
-- Each sensitive action — not just the flow entry point — needs to verify that the requesting user has permission to perform it.
-- If possible, tie the confirmation to a server-side token generated during step 1 that's bound to the session. That way you can't just forge step 2 in isolation.
+- **Price must never be sent from the client.** The server should calculate the price based on the `productId` using its own database — not trust whatever number shows up in the request body.
+- The only thing the client should send is what the user selected: product ID and quantity. Everything else — price, discount, total — is the server's job to calculate.
+- Any pricing logic that lives in the frontend (JavaScript, hidden fields, POST parameters) is not security. It's just UI. Treat it accordingly.
 
 ---
 
 ## Takeaway
 
-* **Multi-step doesn't mean multi-checked.** Developers often put the authorization check at the start of a flow and assume the rest is safe. Each step is its own HTTP request — and each one needs its own check.
+- **If it comes from the client, it can be modified.** This applies to everything — prices, quantities, discounts, role flags, you name it. The frontend is not a trust boundary.
 
-* **`confirmed=true` is a red flag.** Whenever you see a confirmation parameter in a request body, ask yourself: what happens if I send this directly, skipping everything before it? The server shouldn't trust client-side state.
+- **Business logic bugs don't need fancy payloads.** No injections, no encoding tricks, no special tools. Just changing a number in a POST request was enough to bypass the entire purchasing workflow. Sometimes the simplest test is the right one.
 
-* **You don't need to find the vulnerability from scratch to understand it.** Here I used the admin account to map the flow first, then replayed it as a low-privilege user. In real engagements, this is normal — you use whatever access you have to understand the application, then test boundaries from a lower-privilege context.
+- **Always intercept add-to-cart requests.** In real bug bounty engagements, pricing endpoints are high-value targets. If the price parameter exists client-side, it's worth testing — even if it looks like it couldn't possibly work.
